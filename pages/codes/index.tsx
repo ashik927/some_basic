@@ -3,6 +3,7 @@ import type { NextPage } from 'next'
 import Head from 'next/head'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import styles from '../../styles/Home.module.css'
 
 interface Props {
@@ -11,10 +12,14 @@ interface Props {
     code: string,
   }[]
 }
+interface codesType {
+  id: number,
+  code: string,
+}
 
 const CodesPage: NextPage<Props> = ({ codes }) => {
   const { user, error, isLoading } = useUser()
-  console.log("codes",codes)
+  console.log("codes", codes)
   if (error) {
     return <p>There Was An Error ...</p>
   }
@@ -29,32 +34,68 @@ const CodesPage: NextPage<Props> = ({ codes }) => {
     </div>
   }
 
-  return (
-    <div className={styles.container}>
-      <p>Secret Codes {user.name}</p>
-      <Link href="api/auth/logout"><a>Log Out</a></Link>
+  const [codesValue, setCodes] = useState<codesType[]>(codes)
+  const [searchValue, setSearchVale] = useState<string>("")
 
-      {
-        codes.map((codeValue,key) => <p>{key} :id:{codeValue.id},code:{codeValue.code}</p>)
-      }
-    </div>
-  )
+  useEffect(() => {
+    setCodes(codesValue)
+  }, [codes])
+
+
+
+  const handleClick = () => {
+    const result = codesValue.filter(codeFilter => codeFilter.code === searchValue)
+    if (result.length > 0) {
+      setCodes(result)
+    } else {
+      setCodes([])
+    }
+  }
+
+
+const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  setSearchVale(e.target.value)
+}
+
+return (
+  <div className={styles.container}>
+    <p>Secret Codes {user.name}</p>
+    <Link href="api/auth/logout"><a>Log Out</a></Link>
+
+    <input type="text" name="code" onChange={handleChange}></input>
+
+    <button onClick={handleClick}>Click Me</button>
+
+    {
+      codesValue.map((codeValue, key) => <p>{key} :id:{codeValue.id},code:{codeValue.code}</p>)
+    }
+  </div>
+)
 }
 
 export default CodesPage;
 
-export const getServerSideProps = async (ctx:any) => {
+export const getServerSideProps = async (ctx: any) => {
   const res = await fetch("http://localhost:3000/api/codes", {
     headers: {
       Cookie: ctx.req.headers.cookie
     }
   })
-  const {codes} = await res.json()
-  return {
-    props: {
-      codes
+  const { codes } = await res.json()
+  if (!codes) {
+    return {
+      props: {
+        codes: []
+      }
+    }
+  } else {
+    return {
+      props: {
+        codes
+      }
     }
   }
+
 }
 
 // export const getServerSideProps = withPageAuthRequired({
